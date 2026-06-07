@@ -87,6 +87,9 @@ class BurpExtender(IBurpExtender, ITab):
         self.chk_mfa = JCheckBox()
         add_row(6, "Manual MFA Required? (Opens visible browser):", self.chk_mfa)
         
+        self.chk_clear_state = JCheckBox()
+        add_row(7, "Force Fresh Login (Clear previous session):", self.chk_clear_state)
+        
         # --- Buttons ---
         btn_panel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
         self.btn_start = JButton("Start Refreshing", actionPerformed=self.start_worker)
@@ -96,7 +99,7 @@ class BurpExtender(IBurpExtender, ITab):
         btn_panel.add(JLabel("   ")) # Spacer
         btn_panel.add(self.btn_stop)
         
-        add_row(7, "", btn_panel)
+        add_row(8, "", btn_panel)
         
         form_wrapper.add(form_panel)
         self.panel.add(form_wrapper, BorderLayout.NORTH)
@@ -125,6 +128,7 @@ class BurpExtender(IBurpExtender, ITab):
         provider = self.combo_provider.getSelectedItem()
         interval = self.txt_interval.getText()
         mfa = self.chk_mfa.isSelected()
+        clear_state = self.chk_clear_state.isSelected()
 
         if not url or not user or not password:
             self.log("[UI] Error: Please fill in URL, Username, and Password.")
@@ -139,6 +143,17 @@ class BurpExtender(IBurpExtender, ITab):
         
         if mfa:
             cmd.append("--mfa")
+            
+        if clear_state:
+            cmd.append("--clear-state")
+            worker_dir = os.path.dirname(os.path.abspath(script_path))
+            state_file = os.path.join(worker_dir, "sso_state.json")
+            if os.path.exists(state_file):
+                try:
+                    os.remove(state_file)
+                    self.log("[UI] Proactively deleted sso_state.json to force a fresh login.")
+                except Exception as e:
+                    self.log("[UI] Warning: Failed to delete sso_state.json: " + str(e))
 
         self.log("[UI] Starting background worker...")
         

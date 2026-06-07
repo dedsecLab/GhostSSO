@@ -5,7 +5,8 @@ import os
 from cloakbrowser import launch
 
 BURP_PROXY = "http://127.0.0.1:8080"
-STATE_FILE = "sso_state.json"
+WORKER_DIR = os.path.dirname(os.path.abspath(__file__))
+STATE_FILE = os.path.join(WORKER_DIR, "sso_state.json")
 
 class BaseProvider:
     def login(self, page, username, password):
@@ -116,11 +117,11 @@ def perform_login(args):
         
         print(f"[{time.strftime('%X')}] Redirected to target app. Waiting for page to settle...")
         page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(10000)
         
         # Save state so we don't have to do MFA next time
         context.storage_state(path=STATE_FILE)
-        print(f"[{time.strftime('%X')}] Session saved to {STATE_FILE}.")
+        print(f"[{time.strftime('%X')}] Session saved to {STATE_FILE}. (This file will be recreated now to save the newly established session).")
 
         print(f"[{time.strftime('%X')}] [SUCCESS] Login successful! Burp Cookie Jar has been updated.")
 
@@ -137,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--provider", required=True, choices=["okta", "google", "microsoft", "github"], help="SSO Provider")
     parser.add_argument("--interval", type=int, default=4, help="Refresh interval in minutes")
     parser.add_argument("--mfa", action="store_true", help="Launch visibly to manually handle MFA")
+    parser.add_argument("--clear-state", action="store_true", help="Clear previous session state before starting")
     
     args = parser.parse_args()
 
@@ -146,6 +148,16 @@ if __name__ == "__main__":
     print(f"Routing traffic through: {BURP_PROXY}")
     if args.mfa:
         print(f"MFA Mode Enabled: Browser will be visible.")
+        
+    if args.clear_state:
+        if os.path.exists(STATE_FILE):
+            try:
+                os.remove(STATE_FILE)
+                print(f"Cleared previous session state (deleted sso_state.json) due to --clear-state flag.")
+            except Exception as e:
+                print(f"Failed to clear session state: {e}")
+        else:
+            print(f"--clear-state flag provided, but no existing sso_state.json was found.")
     
     while True:
         perform_login(args)
