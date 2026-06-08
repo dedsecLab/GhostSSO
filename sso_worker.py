@@ -75,17 +75,16 @@ PROVIDERS = {
 def perform_login(args):
     print(f"[{time.strftime('%X')}] Starting SSO login flow for {args.provider}...")
     
-    if args.clear_state and getattr(args, 'first_run', True):
-        # Explicitly check the worker directory and delete sso_state.json before starting chrome
+    if args.clear_state:
+        # Delete sso_state.json before every login attempt to force a fresh session
         if os.path.exists(STATE_FILE):
             try:
                 os.remove(STATE_FILE)
-                print(f"[{time.strftime('%X')}] Found sso_state.json in {WORKER_DIR}. Deleted it before starting Chrome.")
+                print(f"[{time.strftime('%X')}] Deleted sso_state.json to force a fresh login.")
             except Exception as e:
                 print(f"[{time.strftime('%X')}] Failed to delete sso_state.json: {e}")
         else:
-            print(f"[{time.strftime('%X')}] Force fresh login enabled, but no sso_state.json was found in {WORKER_DIR}.")
-        args.first_run = False
+            print(f"[{time.strftime('%X')}] Force fresh login enabled, but no sso_state.json was found.")
         
     # If MFA is required, we launch visibly (headless=False)
     browser = launch(
@@ -94,8 +93,9 @@ def perform_login(args):
     )
     
     # Load previous session state if it exists to avoid repeated MFA
+    # Skip loading when --clear-state is set to ensure a truly fresh login
     context_args = {"ignore_https_errors": True}
-    if os.path.exists(STATE_FILE):
+    if not args.clear_state and os.path.exists(STATE_FILE):
         context_args["storage_state"] = STATE_FILE
         print(f"[{time.strftime('%X')}] Loaded previous browser state (cookies).")
 
@@ -160,9 +160,6 @@ if __name__ == "__main__":
     print(f"Routing traffic through: {BURP_PROXY}")
     if args.mfa:
         print(f"MFA Mode Enabled: Browser will be visible.")
-        
-    # We now handle clear_state directly inside perform_login just before chrome starts
-    args.first_run = True
     
     while True:
         perform_login(args)

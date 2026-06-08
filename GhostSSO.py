@@ -95,9 +95,12 @@ class BurpExtender(IBurpExtender, ITab):
         self.btn_start = JButton("Start Refreshing", actionPerformed=self.start_worker)
         self.btn_stop = JButton("Stop", actionPerformed=self.stop_worker)
         self.btn_stop.setEnabled(False)
+        self.btn_clear = JButton("Clear Log", actionPerformed=self.clear_log)
         btn_panel.add(self.btn_start)
         btn_panel.add(JLabel("   ")) # Spacer
         btn_panel.add(self.btn_stop)
+        btn_panel.add(JLabel("   ")) # Spacer
+        btn_panel.add(self.btn_clear)
         
         add_row(8, "", btn_panel)
         
@@ -194,6 +197,9 @@ class BurpExtender(IBurpExtender, ITab):
         self.btn_start.setEnabled(True)
         self.btn_stop.setEnabled(False)
         self.log("[UI] Worker stopped.")
+
+    def clear_log(self, event):
+        self.console.setText("")
 
     def read_output(self):
         if not self.worker_process:
