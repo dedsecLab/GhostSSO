@@ -75,6 +75,18 @@ PROVIDERS = {
 def perform_login(args):
     print(f"[{time.strftime('%X')}] Starting SSO login flow for {args.provider}...")
     
+    if args.clear_state and getattr(args, 'first_run', True):
+        # Explicitly check the worker directory and delete sso_state.json before starting chrome
+        if os.path.exists(STATE_FILE):
+            try:
+                os.remove(STATE_FILE)
+                print(f"[{time.strftime('%X')}] Found sso_state.json in {WORKER_DIR}. Deleted it before starting Chrome.")
+            except Exception as e:
+                print(f"[{time.strftime('%X')}] Failed to delete sso_state.json: {e}")
+        else:
+            print(f"[{time.strftime('%X')}] Force fresh login enabled, but no sso_state.json was found in {WORKER_DIR}.")
+        args.first_run = False
+        
     # If MFA is required, we launch visibly (headless=False)
     browser = launch(
         headless=not args.mfa, 
@@ -149,15 +161,8 @@ if __name__ == "__main__":
     if args.mfa:
         print(f"MFA Mode Enabled: Browser will be visible.")
         
-    if args.clear_state:
-        if os.path.exists(STATE_FILE):
-            try:
-                os.remove(STATE_FILE)
-                print(f"Cleared previous session state (deleted sso_state.json) due to --clear-state flag.")
-            except Exception as e:
-                print(f"Failed to clear session state: {e}")
-        else:
-            print(f"--clear-state flag provided, but no existing sso_state.json was found.")
+    # We now handle clear_state directly inside perform_login just before chrome starts
+    args.first_run = True
     
     while True:
         perform_login(args)

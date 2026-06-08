@@ -134,7 +134,7 @@ class BurpExtender(IBurpExtender, ITab):
             self.log("[UI] Error: Please fill in URL, Username, and Password.")
             return
 
-        cmd = ["python", script_path, 
+        cmd = ["python", "-u", script_path, 
                "--url", url, 
                "--user", user, 
                "--password", password, 
