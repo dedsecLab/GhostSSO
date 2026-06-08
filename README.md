@@ -10,6 +10,9 @@ If you've ever had a scan fail because an Okta or Azure AD session timed out, Gh
 - **MFA Support:** Supports manual MFA handling. If your target requires a hardware key or Authenticator app, GhostSSO can launch a visible browser window, wait for you to tap your key, and then save the session state so you don't have to do it again!
 - **Stealth Browser:** Powered by [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) to evade basic bot detection that blocks standard Playwright/Puppeteer scripts.
 - **Burp Native UI:** Clean Java Swing interface directly inside Burp Suite to configure your targets and monitor live logs.
+- **Flexible Refresh Interval:** Set your session refresh interval in hours, minutes, and seconds for precise control.
+- **Force Fresh Login:** Optionally clear all saved session state to force a completely fresh SSO login on every refresh cycle.
+- **Live Worker Console:** All worker output is streamed in real-time to the Burp UI console with a **Clear Log** button for easy management.
 
 ## Architecture
 Because Burp Suite's native Python support (Jython) is stuck on Python 2.7, GhostSSO uses a **Controller-Worker** architecture:
@@ -29,14 +32,16 @@ Because Burp Suite's native Python support (Jython) is stuck on Python 2.7, Ghos
 5. Select `GhostSSO.py` from the cloned repository.
 
 ## Usage
-1. Go to the new **SSO Manager** tab in Burp Suite.
-2. Enter the absolute path to `sso_worker.py` on your machine.
+1. Go to the new **GhostSSO** tab in Burp Suite.
+2. Enter the absolute path to `sso_worker.py` on your machine (auto-detected if co-located with the extension).
 3. Enter your Target URL, Username, and Password.
 4. Select your SSO Provider.
-5. If the application requires MFA, check the **Manual MFA Required** box.
-6. Click **Start Refreshing**.
+5. Set the **Refresh Interval** using the hours, minutes, and seconds fields (e.g., `0h 4m 0s` for every 4 minutes).
+6. If the application requires MFA, check the **Manual MFA Required** box.
+7. To discard any saved session and force a full re-authentication, check **Force Fresh Login**.
+8. Click **Start Refreshing**.
 
-GhostSSO will launch the worker, perform the login, and pipe the fresh cookies directly into Burp Suite's Cookie Jar.
+GhostSSO will launch the worker, perform the login, and pipe the fresh cookies directly into Burp Suite's Cookie Jar. All worker logs are streamed live to the **Worker Output Console** panel. Use the **Clear Log** button to reset the console at any time.
 
 ## Security Warning
 This tool requires entering plaintext credentials into the Burp UI, which are passed to the worker script. Do not use this tool on shared machines where other users can read process arguments.

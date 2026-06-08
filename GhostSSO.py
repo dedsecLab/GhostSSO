@@ -5,8 +5,8 @@ import os
 
 from burp import IBurpExtender
 from burp import ITab
-from javax.swing import JPanel, JButton, JTextField, JPasswordField, JLabel, JComboBox, JTextArea, JScrollPane, JCheckBox, SwingUtilities, BorderFactory
-from java.awt import BorderLayout, FlowLayout, GridBagLayout, GridBagConstraints, Insets, Font
+from javax.swing import JPanel, JButton, JTextField, JPasswordField, JLabel, JComboBox, JTextArea, JScrollPane, JCheckBox, SwingUtilities, BorderFactory, BoxLayout, Box
+from java.awt import BorderLayout, FlowLayout, GridBagLayout, GridBagConstraints, Insets, Font, Dimension
 
 class BurpExtender(IBurpExtender, ITab):
     def registerExtenderCallbacks(self, callbacks):
@@ -81,8 +81,19 @@ class BurpExtender(IBurpExtender, ITab):
         self.combo_provider = JComboBox(["okta", "google", "microsoft", "github"])
         add_row(4, "Provider:", self.combo_provider)
         
-        self.txt_interval = JTextField("4", 40)
-        add_row(5, "Refresh Interval (minutes):", self.txt_interval)
+        interval_panel = JPanel(FlowLayout(FlowLayout.LEFT, 2, 0))
+        self.txt_hours = JTextField("0", 3)
+        self.txt_minutes = JTextField("4", 3)
+        self.txt_seconds = JTextField("0", 3)
+        interval_panel.add(self.txt_hours)
+        interval_panel.add(JLabel("h"))
+        interval_panel.add(Box.createHorizontalStrut(5))
+        interval_panel.add(self.txt_minutes)
+        interval_panel.add(JLabel("m"))
+        interval_panel.add(Box.createHorizontalStrut(5))
+        interval_panel.add(self.txt_seconds)
+        interval_panel.add(JLabel("s"))
+        add_row(5, "Refresh Interval:", interval_panel)
         
         self.chk_mfa = JCheckBox()
         add_row(6, "Manual MFA Required? (Opens visible browser):", self.chk_mfa)
@@ -129,7 +140,6 @@ class BurpExtender(IBurpExtender, ITab):
         user = self.txt_user.getText()
         password = "".join(self.txt_pass.getPassword()) # Extract from JPasswordField
         provider = self.combo_provider.getSelectedItem()
-        interval = self.txt_interval.getText()
         mfa = self.chk_mfa.isSelected()
         clear_state = self.chk_clear_state.isSelected()
 
@@ -137,12 +147,26 @@ class BurpExtender(IBurpExtender, ITab):
             self.log("[UI] Error: Please fill in URL, Username, and Password.")
             return
 
+        # Compute total interval in seconds from H/M/S fields
+        try:
+            hours = int(self.txt_hours.getText() or "0")
+            minutes = int(self.txt_minutes.getText() or "0")
+            seconds = int(self.txt_seconds.getText() or "0")
+            total_seconds = (hours * 3600) + (minutes * 60) + seconds
+        except ValueError:
+            self.log("[UI] Error: Refresh interval fields must be valid numbers.")
+            return
+        
+        if total_seconds <= 0:
+            self.log("[UI] Error: Refresh interval must be greater than 0.")
+            return
+
         cmd = ["python", "-u", script_path, 
                "--url", url, 
                "--user", user, 
                "--password", password, 
                "--provider", provider, 
-               "--interval", interval]
+               "--interval", str(total_seconds)]
         
         if mfa:
             cmd.append("--mfa")

@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--user", required=True, help="SSO Username")
     parser.add_argument("--password", required=True, help="SSO Password")
     parser.add_argument("--provider", required=True, choices=["okta", "google", "microsoft", "github"], help="SSO Provider")
-    parser.add_argument("--interval", type=int, default=4, help="Refresh interval in minutes")
+    parser.add_argument("--interval", type=int, default=240, help="Refresh interval in seconds")
     parser.add_argument("--mfa", action="store_true", help="Launch visibly to manually handle MFA")
     parser.add_argument("--clear-state", action="store_true", help="Clear previous session state before starting")
     
@@ -163,5 +163,14 @@ if __name__ == "__main__":
     
     while True:
         perform_login(args)
-        print(f"[{time.strftime('%X')}] Sleeping for {args.interval} minutes before next refresh...")
-        time.sleep(args.interval * 60)
+        h, rem = divmod(args.interval, 3600)
+        m, s = divmod(rem, 60)
+        interval_str = ""
+        if h > 0:
+            interval_str += f"{h}h "
+        if m > 0:
+            interval_str += f"{m}m "
+        if s > 0 or not interval_str:
+            interval_str += f"{s}s"
+        print(f"[{time.strftime('%X')}] Sleeping for {interval_str.strip()} before next refresh...")
+        time.sleep(args.interval)
